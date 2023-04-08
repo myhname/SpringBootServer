@@ -1,9 +1,6 @@
 package server.mine.servertest.mysql.bean;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @IdClass(UIDBean.class)
@@ -11,9 +8,23 @@ import jakarta.persistence.Table;
 public class PermissionBean {
 
     @Id
+    @Column(name = "docUID")
     private Integer docUID;
+
+    @Override
+    public String toString() {
+        return "PermissionBean{" +
+                "docUID=" + docUID +
+                ", UUID=" + userUID +
+                ", permissionType='" + permissionType + '\'' +
+                '}';
+    }
+
     @Id
-    private Integer UUID;
+    @Column(name = "UUID")
+    private Integer userUID;
+
+    @Column(name = "permissionType")
     String permissionType;
 
     public PermissionBean() {
@@ -21,7 +32,7 @@ public class PermissionBean {
 
     public PermissionBean(int docUID, int UUID, String permissionType) {
         this.docUID = docUID;
-        this.UUID = UUID;
+        this.userUID = UUID;
         this.permissionType = permissionType;
     }
 
@@ -33,12 +44,12 @@ public class PermissionBean {
         this.docUID = docUID;
     }
 
-    public int getUUID() {
-        return UUID;
+    public int getUserUID() {
+        return userUID;
     }
 
-    public void setUUID(int UUID) {
-        this.UUID = UUID;
+    public void setUserUID(int UUID) {
+        this.userUID = UUID;
     }
 
     public String getPermissionType() {

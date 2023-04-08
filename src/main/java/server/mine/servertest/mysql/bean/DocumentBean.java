@@ -13,7 +13,7 @@ public class DocumentBean {
     private String format;
     private Integer authorUID;
 
-    public int getDocUID() {
+    public Integer getDocUID() {
         return docUID;
     }
 

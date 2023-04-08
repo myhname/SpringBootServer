@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 public class UIDBean implements Serializable {
     Integer docUID;
-    Integer UUID;
+    Integer userUID;
 
     public int getDocUID() {
         return docUID;
@@ -14,11 +14,11 @@ public class UIDBean implements Serializable {
         this.docUID = docUID;
     }
 
-    public int getUUID() {
-        return UUID;
+    public int getUserUID() {
+        return userUID;
     }
 
-    public void setUUID(int UUID) {
-        this.UUID = UUID;
+    public void setUserUID(int UUID) {
+        this.userUID = UUID;
     }
 }

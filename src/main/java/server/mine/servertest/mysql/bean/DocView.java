@@ -3,13 +3,17 @@ package server.mine.servertest.mysql.bean;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name="docView")
-public class DocViewBean {
+@IdClass(UIDBean.class)
+@Table(name="docview")
+public class DocView {
     @Id
     @Column(name="uid")
-    private Integer uid;
+    private Integer userUID;
+
+    @Id
     @Column(name = "docUid")
-    private Integer docUid;
+    private Integer docUID;
+
     @Column(name = "title")
     private String title;
     @Column(name = "format")
@@ -17,20 +21,20 @@ public class DocViewBean {
     @Column(name = "permissionType")
     private String permissionType;
 
-    public Integer getUid() {
-        return uid;
+    public Integer getUserUID() {
+        return userUID;
     }
 
-    public void setUid(Integer uid) {
-        this.uid = uid;
+    public void setUserUID(Integer uid) {
+        this.userUID = uid;
     }
 
-    public Integer getDocUid() {
-        return docUid;
+    public Integer getDocUID() {
+        return docUID;
     }
 
-    public void setDocUid(Integer docUid) {
-        this.docUid = docUid;
+    public void setDocUID(Integer docUid) {
+        this.docUID = docUid;
     }
 
     public String getPermissionType() {

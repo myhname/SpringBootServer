@@ -1,20 +1,16 @@
 package server.mine.servertest;
 
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
-import server.mine.servertest.JWT.JWTInterceptor;
 import server.mine.servertest.JWT.JWTUtils;
 import server.mine.servertest.mysql.Dao.DocViewDao;
 import server.mine.servertest.mysql.Dao.DocumentDao;
 import server.mine.servertest.mysql.Dao.PermissionDao;
 import server.mine.servertest.mysql.Dao.UserDao;
-import server.mine.servertest.mysql.bean.DocViewBean;
-import server.mine.servertest.mysql.bean.DocumentBean;
+import server.mine.servertest.mysql.bean.PermissionBean;
 import server.mine.servertest.mysql.bean.UserBean;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -159,4 +155,41 @@ public class UserController {
         rmsg.setObject(y);
         return rmsg;
     }
+
+    //修改权限
+    @PostMapping(path = "/addPermission/{UID}")
+    public  ReturnMsg addPermission(@PathVariable(value = "UID") Integer uid, @RequestBody PermissionBean permission){
+        System.out.println(permission.toString());
+        var x = documentDao.getDocumentBeanByAuthorUID(uid);
+        boolean flag = false;
+        for (var c:x
+             ) {
+            if(c.getDocUID().equals(permission.getDocUID())){
+                flag = true;
+                break;
+            }
+        }
+        ReturnMsg rmsg = new ReturnMsg();
+        if(!flag){
+            rmsg.setCode(403);
+            rmsg.setObjectType("String");
+            rmsg.setObject("ERROR: 您并非这篇文章的作者，没有此类操作权限!");
+            return rmsg;
+        }
+        var y = permissionDao.getPermissionBeanByUUIDAAndDocUID(permission.getUserUID(),permission.getDocUID());
+        PermissionBean curr = new PermissionBean();
+        if(y.isEmpty()){
+            curr.setUserUID(permission.getUserUID());
+            curr.setDocUID(permission.getDocUID());
+        }else {
+            curr = y.get(0);
+        }
+        curr.setPermissionType(permission.getPermissionType());
+        permissionDao.save(curr);
+        rmsg.setCode(200);
+        rmsg.setObjectType("String");
+        rmsg.setObject("成功！");
+        return rmsg;
+    }
+
 }

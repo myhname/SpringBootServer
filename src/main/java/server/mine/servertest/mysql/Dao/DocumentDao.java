@@ -12,4 +12,7 @@ public interface DocumentDao extends CrudRepository<DocumentBean, Integer> {
     @Query("select d from DocumentBean d where d.authorUID=?1")
     List<DocumentBean> getDocumentBeanByAuthorUID(Integer UID);
 
+    @Query("select max(docUID) from DocumentBean")
+    Integer getDocumentBeanByMaxDocUID();
+
 }
