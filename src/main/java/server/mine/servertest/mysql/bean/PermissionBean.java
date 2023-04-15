@@ -25,7 +25,7 @@ public class PermissionBean {
     private Integer userUID;
 
     @Column(name = "permissionType")
-    String permissionType;
+    private String permissionType;
 
     public PermissionBean() {
     }

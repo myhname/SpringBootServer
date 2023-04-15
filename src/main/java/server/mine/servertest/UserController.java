@@ -8,6 +8,7 @@ import server.mine.servertest.mysql.Dao.DocumentDao;
 import server.mine.servertest.mysql.Dao.PermissionDao;
 import server.mine.servertest.mysql.Dao.UserDao;
 import server.mine.servertest.mysql.bean.PermissionBean;
+import server.mine.servertest.mysql.bean.RequestString;
 import server.mine.servertest.mysql.bean.UserBean;
 
 import java.util.HashMap;
@@ -33,14 +34,15 @@ public class UserController {
     //登录
     @PostMapping(path = "/login")
     public @ResponseBody
-    ReturnMsg login(@RequestParam String account, @RequestParam String password) {
-        System.out.println("接收到:"+account);
+    ReturnMsg login(@RequestBody UserBean user) {
+        //todo
+        System.out.println("接收到:"+user.getAccount());
         var x = userDao.findAll();
         UserBean curr = null;
         for (var c : x) {
             //todo 测试输出
 //            System.out.println(c.getAccount());
-            if (c.getAccount().equals(account)) {
+            if (c.getAccount().equals(user.getAccount())) {
                 curr = c;
                 break;
             }
@@ -52,14 +54,15 @@ public class UserController {
             rmsg.setObject("Error: User Not Found!");
             return rmsg;
         }
-        if(curr.getPassword().equals(password)){
+        if(curr.getPassword().equals(user.getPassword())){
             rmsg.setCode(200);
             rmsg.setObjectType("Token");
             Map<String,String> payload = new HashMap<>();
-            payload.put("account",account);
+            payload.put("account",user.getAccount());
             payload.put("uuid",curr.getUUID().toString());
             String token = JWTUtils.getToken(payload);
-            rmsg.setObject(token);
+            String backMsg = token + "|||" + curr.getUUID();
+            rmsg.setObject(backMsg);
         }else {
             rmsg.setCode(403);
             rmsg.setObjectType("String");
@@ -116,7 +119,7 @@ public class UserController {
 
     //修改密码
     @PatchMapping(value = "/changePassword/{uid}")
-    public @ResponseBody ReturnMsg changePassword(@PathVariable(value = "uid") Integer uid, @RequestParam String newPassword){
+    public @ResponseBody ReturnMsg changePassword(@PathVariable(value = "uid") Integer uid, @RequestBody RequestString newPassword){
         var x = userDao.findById(uid);
         System.out.println(x);
         ReturnMsg rmsg = new ReturnMsg();
@@ -127,7 +130,7 @@ public class UserController {
             return rmsg;
         }
         UserBean curr = x.get();
-        curr.setPassword(newPassword);
+        curr.setPassword(newPassword.getRequestContent());
         userDao.save(curr);
         rmsg.setCode(200);
         rmsg.setObjectType("String");
@@ -148,7 +151,7 @@ public class UserController {
             return rmsg;
         }
         rmsg.setCode(200);
-        rmsg.setObjectType("List of DocumentBean");
+        rmsg.setObjectType("List of DocView");
 //        var y = permissionDao.getPermissionBeanByUUID(uid);
 //        var y = documentDao.getDocumentBeanByAuthorUID(uid);
         var y = docViewDao.getDocViewBeanByUid(uid);

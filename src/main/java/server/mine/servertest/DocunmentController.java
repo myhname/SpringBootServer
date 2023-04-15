@@ -8,10 +8,7 @@ import server.mine.servertest.mysql.Dao.DocumentDao;
 import server.mine.servertest.mysql.Dao.PermissionDao;
 import server.mine.servertest.mysql.Dao.UserDao;
 import server.mine.servertest.mysql.MysqlOperate;
-import server.mine.servertest.mysql.bean.DocContentBean;
-import server.mine.servertest.mysql.bean.DocMapBean;
-import server.mine.servertest.mysql.bean.DocumentBean;
-import server.mine.servertest.mysql.bean.PermissionBean;
+import server.mine.servertest.mysql.bean.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +104,8 @@ public class DocunmentController {
 
     //上传文档内容(直接上传文档的话，内容要直接传上来，统一管理，这里不加计数)
     @PostMapping(path = "/newContent/{docUID}")
-    public @ResponseBody ReturnMsg newContent(@PathVariable(value = "docUID") Integer docUID, @RequestBody List<String> contentList){
+    public @ResponseBody ReturnMsg newContent(@PathVariable(value = "docUID") Integer docUID, @RequestBody RequestList content){
+        var contentList = content.getContentList();
         ReturnMsg rmsg = new ReturnMsg();
         mysqlOperate.saveDocToSQL("doc"+docUID,contentList);
         //可以覆盖，所以重复就重复吧
@@ -120,12 +118,12 @@ public class DocunmentController {
     }
 
     //重命名
-    @PatchMapping(path = "/updataTitle/{docUID}")
+    @PatchMapping(path = "/updateTitle/{docUID}")
     public @ResponseBody
-    ReturnMsg changeTitle(@PathVariable(value = "docUID") Integer docUID, @RequestBody String newTitle) {
+    ReturnMsg changeTitle(@PathVariable(value = "docUID") Integer docUID, @RequestBody RequestString newTitle) {
         var x = documentDao.findById(docUID);
         DocumentBean curr = x.get();
-        curr.setTitle(newTitle);
+        curr.setTitle(newTitle.getRequestContent());
         documentDao.save(curr);
         ReturnMsg rmsg = new ReturnMsg();
         rmsg.setCode(200);
@@ -137,14 +135,14 @@ public class DocunmentController {
     //修改文档描述
     @PatchMapping(path = "/updateDesc/{docUID}")
     public @ResponseBody
-    ReturnMsg changeDescription(@PathVariable(value = "docUID") Integer docUID, @RequestBody String newDesc) {
+    ReturnMsg changeDescription(@PathVariable(value = "docUID") Integer docUID, @RequestBody RequestString newDesc) {
         System.out.println(newDesc);
         ReturnMsg rmsg = new ReturnMsg();
         if (!allDocMap.containsKey(docUID)) {
             getDocumentFromSQL(docUID);
         }
-        allDocMap.get(docUID).getDocContent().set(0, newDesc);
-        mysqlOperate.updateDesc("doc"+docUID,newDesc);
+        allDocMap.get(docUID).getDocContent().set(0, newDesc.getRequestContent());
+        mysqlOperate.updateDesc("doc"+docUID,newDesc.getRequestContent());
         rmsg.setCode(200);
         rmsg.setObjectType("String");
         rmsg.setObject("修改成功");
@@ -179,7 +177,7 @@ public class DocunmentController {
             mysqlOperate.saveDocToSQL("doc"+docUID,allDocMap.get(docUID).getDocContent());
         }
         rmsg.setCode(200);
-        rmsg.setObjectType("DocumentContent");
+        rmsg.setObjectType("String");
         rmsg.setObject("保存成功！");
         return rmsg;
     }
@@ -217,9 +215,9 @@ public class DocunmentController {
     }
 
     //curl 中文会有乱码
-    @GetMapping(path = "/test")
+    @PostMapping(path = "/test")
     public @ResponseBody
-    String test() {
+    ReturnMsg test() {
 //        try{
 //            mysqlOperate.updateDesc("doc10000000", "试一试''");
 //        }catch (DataAccessException err){
@@ -232,7 +230,13 @@ public class DocunmentController {
 //        }
 //        System.out.println(mysqlOperate.getMaxRowNumber("doc10000000"));
         System.out.println("表是否没内容：" + allDocMap.isEmpty());
-        return "操作";
+//        System.out.println(contentList.getContentList());
+//        System.out.println(contentList.getContentList().get(0));
+        ReturnMsg rmsg = new ReturnMsg();
+        rmsg.setCode(200);
+        rmsg.setObjectType("String");
+        rmsg.setObject("即将关闭文章！");
+        return rmsg;
     }
 
 }
