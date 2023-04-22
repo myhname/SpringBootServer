@@ -6,11 +6,21 @@ import java.util.List;
 public class DocMapBean {
 
     private List<String> docContent;
-    private Integer number;
+    private Integer lineNumber;
+    private Integer userNumber;
+
+    public Integer getLineNumber() {
+        return lineNumber;
+    }
+
+    public void setLineNumber(Integer lineNumber) {
+        this.lineNumber = lineNumber;
+    }
 
     public DocMapBean(){
         docContent = new ArrayList<>();
-        number = 0;
+        lineNumber = 0;
+        userNumber = 0;
     }
 
     public List<String> getDocContent() {
@@ -21,12 +31,12 @@ public class DocMapBean {
         this.docContent = docContent;
     }
 
-    public Integer getNumber() {
-        return number;
+    public Integer getUserNumber() {
+        return userNumber;
     }
 
-    public void setNumber(Integer number) {
-        this.number = number;
+    public void setUserNumber(Integer number) {
+        this.userNumber = number;
     }
 
 }

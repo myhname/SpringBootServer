@@ -52,7 +52,12 @@ public class MysqlOperate {
         jdbcTemplate.update(sql);
     }
 
-    //获得文章某一行的内容
+    /**
+     * 获得文章某一行的内容
+     * @param tableName
+     * @param rowNumber
+     * @return
+     */
     public String findRowContent(String tableName, Integer rowNumber){
         String sql = "select content from " + tableName + " where rowNumber=" + rowNumber;
         var a = jdbcTemplate.queryForMap(sql);
@@ -60,7 +65,7 @@ public class MysqlOperate {
     }
 
     /**
-     * 获取文章最大行号
+     * 获取文章最大行号(这里没有计算描述)
      * @param tableName
      * @return
      */
@@ -78,6 +83,16 @@ public class MysqlOperate {
      */
     public void newRowContent(String tableName, Integer rowNumber ,String content){
         String sql = "insert " + tableName + " values(" + rowNumber + ",\"" + escapeSpecialPunctuation(content) + "\");";
+        jdbcTemplate.update(sql);
+    }
+
+    /**
+     * 删除某一行
+     * @param tableName
+     * @param rowNumber
+     */
+    public void deleteRowContent(String tableName, Integer rowNumber){
+        String sql = "delete from " + tableName + " where rowNumber = " + rowNumber;
         jdbcTemplate.update(sql);
     }
 
@@ -104,14 +119,26 @@ public class MysqlOperate {
      * @param contentList
      */
     public void saveDocToSQL(String tableName, List<String> contentList){
-        Integer maxLineNumber = getMaxRowNumber(tableName);
-        for(int i=0;i<contentList.size();i++){
-            if(i<=maxLineNumber){
-                updateRowContent(tableName,i,contentList.get(i));
-            }else{
-                newRowContent(tableName,i,contentList.get(i));
+//        需要考虑文章内容变少的情况，sql中行标从0起
+        Integer maxLineNumber = getMaxRowNumber(tableName) + 1;
+        if(contentList.size()>=maxLineNumber){
+            for(int i=0;i<contentList.size();i++){
+                if(i<maxLineNumber){
+                    updateRowContent(tableName,i,contentList.get(i));
+                }else{
+                    newRowContent(tableName,i,contentList.get(i));
+                }
+            }
+        }else {
+            for(int i=0;i<contentList.size();i++){
+                if(i<maxLineNumber){
+                    updateRowContent(tableName,i,contentList.get(i));
+                }else{
+                    deleteRowContent(tableName,i);
+                }
             }
         }
+
     }
 
     /**
