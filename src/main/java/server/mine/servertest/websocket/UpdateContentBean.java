@@ -1,18 +1,28 @@
 package server.mine.servertest.websocket;
 
+import java.util.List;
+
 public class UpdateContentBean {
 
+//    用户
+    private Integer userUID;
+//    文章
     private Integer docUID;
-    private Integer rowNumber;
-    private String content;
+//    操作类型，行增+input、所有减+delete、粘贴paste，*compose编辑当前行
+    private String changeType;
+//    操作起始行号，from
+    private Integer startLine;
+//    text，新的文章内容
+    private List<String> newContent;
+//  removed，被修改的内容，直接替换所以只需要知道从当前行开始改变了多少行就行
+    private Integer removedNumbers;
 
-    //{"docUID":3,"rowNumber":3,"content":"2222"}以此类JSON格式传递消息的初始化
-    public UpdateContentBean(String jsonString) {
-        var curr = jsonString.split(",");
-        docUID = Integer.valueOf(curr[0].split(":")[curr[0].split(":").length -1]);
-        rowNumber = Integer.valueOf(curr[1].split(":")[curr[1].split(":").length -1]);
-        String x = curr[2].split(":")[curr[2].split(":").length -1];
-        content = x.substring(1,x.length()-2);
+    public Integer getUserUID() {
+        return userUID;
+    }
+
+    public void setUserUID(Integer userUID) {
+        this.userUID = userUID;
     }
 
     public Integer getDocUID() {
@@ -23,19 +33,37 @@ public class UpdateContentBean {
         this.docUID = docUID;
     }
 
-    public Integer getRowNumber() {
-        return rowNumber;
+    public String getChangeType() {
+        return changeType;
     }
 
-    public void setRowNumber(Integer rowNumber) {
-        this.rowNumber = rowNumber;
+    public void setChangeType(String changeType) {
+        this.changeType = changeType;
     }
 
-    public String getContent() {
-        return content;
+    public Integer getStartLine() {
+        return startLine;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setStartLine(Integer startLine) {
+        this.startLine = startLine;
     }
+
+    public List<String> getNewContent() {
+        return newContent;
+    }
+
+    public void setNewContent(List<String> newContent) {
+        this.newContent = newContent;
+    }
+
+    public Integer getRemovedNumbers() {
+        return removedNumbers;
+    }
+
+    public void setRemovedNumbers(Integer removedNumbers) {
+        this.removedNumbers = removedNumbers;
+    }
+
+//    还差一个初始化
 }

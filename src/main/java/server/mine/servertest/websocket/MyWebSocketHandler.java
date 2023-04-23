@@ -1,5 +1,6 @@
 package server.mine.servertest.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.util.JSON;
 import jakarta.annotation.Resource;
 import org.springframework.beans.BeansException;
@@ -16,6 +17,7 @@ import server.mine.servertest.mysql.bean.DocMapBean;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -27,8 +29,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
     @Resource(name = "docMap")
     private Map<Integer, DocMapBean> allDocMap;
 
-    //这里其实全局只有一个会话，还不能区分群组，后续再改进
-    //采用消息队列可能性能更好？之后了解一下
+    //采用消息队列可能性能更好？之后了解一下，这样设计的问题就是关闭文章时候要重连
     private final Map<String, Set<WebSocketSession>> rooms = new ConcurrentHashMap<>();
 
     @Override
@@ -47,26 +48,85 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
         System.out.println("Received message: " + message.getPayload());
         //格式处理
         var x = message.getPayload();
-        UpdateContentBean curr = new UpdateContentBean(x);
+        ObjectMapper objectMapper = new ObjectMapper();
+        UpdateContentBean curr = objectMapper.readValue(x, UpdateContentBean.class);
+//      没打开文章不操作
+        if(curr.getDocUID() == null) return;
         //todo
-        System.out.println(curr.getContent());
-        //存储
+        System.out.println(curr.getChangeType());
+        var currAttributes =  session.getAttributes();
+//        如果是打开文章时候发起的信息
+        if(Objects.equals(curr.getChangeType(), "startEditor")){
+//            保存分组信息
+            currAttributes.put("docUID",curr.getDocUID());
+            //        按照编辑的文档进行分组
+            Set<WebSocketSession> sessions = rooms.computeIfAbsent((String) currAttributes.get("docUID"), k->ConcurrentHashMap.newKeySet());
+            sessions.add(session);
+            return ;
+        }
+//       还没划进群组就错了
+        if(currAttributes.get("docUID") == null){
+//            返回错误信息
+            session.sendMessage(new TextMessage("Error：请重新打开文章建立连接"));
+            return;
+        }
+        String roomId = (String) currAttributes.get("docUID");
+//        如果是关闭文章时候发起的信息
+        if(Objects.equals(curr.getChangeType(), "endEditor")){
+                Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
+                sessions.remove(session);
+                //        为空则删除
+                if(sessions.isEmpty()) rooms.remove(roomId);
+            return ;
+        }
+//       消息处理
         int docUID = curr.getDocUID();
-        if(allDocMap.isEmpty()){
-            session.sendMessage(new TextMessage("未打开任何文章！"));
-            return ;
-        }
+//        如果没有打开文章
         if(!allDocMap.containsKey(docUID)){
-            session.sendMessage(new TextMessage("ERROR: 未发现此文章被使用！"));
+            session.sendMessage(new TextMessage("ERROR：未打开当前文章！"));
             return ;
-        }else if(allDocMap.get(docUID).getDocContent().size() <= curr.getRowNumber()){
-            allDocMap.get(docUID).getDocContent().add(curr.getContent());
-        }else {
-            allDocMap.get(docUID).getDocContent().set(curr.getRowNumber(),curr.getContent());
         }
-//        //消息转发
-        String roomId = "editor";
+        var currDocMap = allDocMap.get(docUID);
+        var currContent = currDocMap.getDocContent();
+        int startLine = curr.getStartLine();
+//        应对四种类型的修改， 单行编辑，粘贴，新增行，删除内容(单行或多行)
+        if(Objects.equals(curr.getChangeType(), "*compose")){
+//            只需要替换单行内容
+            currContent.set(startLine,curr.getNewContent().get(0));
+        }else if(Objects.equals(curr.getChangeType(), "paste")){
+//          需要替换内容段
+            for(int i=0;i<curr.getRemovedNumbers();i++){
+                currContent.remove(startLine);
+            }
+//            插入新的内容
+            for (int i=curr.getNewContent().size()-1;i>=0;i--){
+                currContent.add(startLine,curr.getNewContent().get(i));
+            }
+        }else if(Objects.equals(curr.getChangeType(), "+input")){
+//            新增一行，先替换原本的那一行
+            currContent.set(startLine,curr.getNewContent().get(0));
+//            再新增一行
+            currContent.add(startLine+1,curr.getNewContent().get(1));
+        } else if(Objects.equals(curr.getChangeType(), "-delete")){
+//            先删除,当前行不用删，直接替换就好
+            if(curr.getRemovedNumbers() != 1){
+                for(int i=0;i<curr.getRemovedNumbers()-1;i++){
+                    currContent.remove(startLine);
+                }
+            }
+            currContent.set(startLine,curr.getNewContent().get(0));
+        }
+//      消息转发
         Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
+        if (sessions.isEmpty()){
+            session.sendMessage(new TextMessage("ERROR：群组不存在"));
+            return;
+        }
+//        群组中只有一个人就没必要转发了
+        if(sessions.size() == 1){
+            return;
+        }
+//        群组内消息转发
         for (WebSocketSession sess : sessions) {
             if (sess.isOpen() && sess != session) {
                 sess.sendMessage(new TextMessage(message.getPayload()));
@@ -74,14 +134,22 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
         }
     }
 
+    //WebSocket 连接关闭后执行的方法
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+//        获取当前用户所在分组
+        var currAttributes =  session.getAttributes();
         String roomId = "editor";
         Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
         sessions.remove(session);
+//        为空则删除
+        if(sessions.isEmpty()){
+            rooms.remove(roomId);
+        }
         System.out.println("Client disconnected: " + session.getId());
     }
 
+    //WebSocket 连接出错后执行的方法
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         System.err.println("Error on WebSocket connection: " + exception.getMessage());
