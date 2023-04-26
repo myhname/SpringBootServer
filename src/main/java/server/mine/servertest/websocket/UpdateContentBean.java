@@ -8,7 +8,7 @@ public class UpdateContentBean {
     private Integer userUID;
 //    文章
     private Integer docUID;
-//    操作类型，行增+input、所有减+delete、粘贴paste，*compose编辑当前行
+//    操作类型，行增+input、所有减+delete、粘贴paste，*compose编辑当前行；setValue切换文章
     private String changeType;
 //    操作起始行号，from
     private Integer startLine;
