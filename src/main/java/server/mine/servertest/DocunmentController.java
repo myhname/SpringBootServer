@@ -10,6 +10,8 @@ import server.mine.servertest.mysql.MysqlOperate;
 import server.mine.servertest.mysql.bean.*;
 
 import java.io.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +129,19 @@ public class DocunmentController {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 获取时间
+      */
+    public String getCurrTime(){
+        // 创建一个DateTimeFormatter实例，指定格式为"yyyy-MM-dd"
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+// 获取当前日期
+        LocalDate currentDate = LocalDate.now();
+// 使用formatter将日期格式化为指定格式的字符串
+
+        return currentDate.format(formatter);
     }
 
     /**
@@ -268,7 +283,7 @@ public class DocunmentController {
 //            每次保存到数据库更新历史版本
             HistoryManageBean lastHistory = new HistoryManageBean();
             lastHistory.setDocUID(docUID);
-            String date = DateTimeUtils.FORMAT_STRING_DATE;
+            String date = getCurrTime();
             lastHistory.setTime(date);
             lastHistory.setName(docUID + "-" + date);
             var x = getContentListFromSQL("doc" + docUID);

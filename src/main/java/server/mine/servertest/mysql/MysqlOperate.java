@@ -61,7 +61,7 @@ public class MysqlOperate {
     public String findRowContent(String tableName, Integer rowNumber){
         String sql = "select content from " + tableName + " where rowNumber=" + rowNumber;
         var a = jdbcTemplate.queryForMap(sql);
-        return (String) a.values().toArray()[0];
+        return String.valueOf(a.values().toArray()[0]);
     }
 
     /**

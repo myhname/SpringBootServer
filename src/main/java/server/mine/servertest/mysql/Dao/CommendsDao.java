@@ -7,7 +7,7 @@ import server.mine.servertest.mysql.bean.DocumentBean;
 
 import java.util.List;
 
-public interface CommendsDao  extends CrudRepository<CommendsBean, Integer> {
+public interface CommendsDao extends CrudRepository<CommendsBean, Integer> {
 
     @Query("select d from CommendsBean d where d.docUID=?1")
     List<DocumentBean> getCommendsBeanByDocUID(Integer UID);

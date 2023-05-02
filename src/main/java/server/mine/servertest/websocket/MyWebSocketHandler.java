@@ -18,6 +18,8 @@ import server.mine.servertest.mysql.Dao.ModifyRecordDao;
 import server.mine.servertest.mysql.bean.DocMapBean;
 import server.mine.servertest.mysql.bean.ModifyRecordBean;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -38,13 +40,42 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
     @Resource
     private ModifyRecordDao modifyRecordDao;
 //    只记录到文章本次修改的最后一次修改
-    private Map<Integer,Map<Integer,ModifyRecord>> modifyLast;
+    private Map<Integer,Map<Integer,ModifyRecord>> modifyLast = new HashMap<>();
+
+//    保存操作记录到数据库
+    public void saveModifyRecordToSQL(Integer uid){
+        //                  保存修改记录到数据库
+        var currModifyRecord = modifyLast.get(uid);
+        currModifyRecord.forEach((key,value)->{
+            ModifyRecordBean a = new ModifyRecordBean();
+            a.setDocUID(uid);
+            a.setTime(value.getTime());
+            a.setRowNumber(key);
+            a.setUserUID(value.getUserUID());
+            modifyRecordDao.save(a);
+        });
+//                    删除修改记录暂存表
+        modifyLast.remove(uid);
+    }
+
+//    获取时间
+    public String getCurrTime(){
+        // 创建一个DateTimeFormatter实例，指定格式为"yyyy-MM-dd"
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+// 获取当前日期
+        LocalDate currentDate = LocalDate.now();
+// 使用formatter将日期格式化为指定格式的字符串
+
+        return currentDate.format(formatter);
+    }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String roomId = "editor";
         Set<WebSocketSession> sessions = rooms.computeIfAbsent(roomId, k->ConcurrentHashMap.newKeySet());
         sessions.add(session);
+        var currAttributes =  session.getAttributes();
+        currAttributes.put("docUID","editor");
         System.out.println("Client connected: " + session.getId());
     }
 
@@ -68,7 +99,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
 //            保存分组信息
             currAttributes.put("docUID",curr.getDocUID());
             //        按照编辑的文档进行分组
-            Set<WebSocketSession> sessions = rooms.computeIfAbsent((String) currAttributes.get("docUID"), k->ConcurrentHashMap.newKeySet());
+            Set<WebSocketSession> sessions = rooms.computeIfAbsent(String.valueOf(currAttributes.get("docUID")) , k->ConcurrentHashMap.newKeySet());
             sessions.add(session);
 //            新建历史记录表
             if(!modifyLast.containsKey(curr.getDocUID())) modifyLast.put(curr.getDocUID(), new HashMap<>());
@@ -80,27 +111,18 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
             session.sendMessage(new TextMessage("Error：请重新打开文章建立连接"));
             return;
         }
-        String roomId = (String) currAttributes.get("docUID");
+        String roomId = String.valueOf(currAttributes.get("docUID"));
 //        如果是关闭文章时候发起的信息
         if(Objects.equals(curr.getChangeType(), "endEditor")){
                 Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
                 sessions.remove(session);
+                currAttributes.put("docUID","editor");
                 //        为空则删除
                 if(sessions.isEmpty()){
 //                    移出群组
                     rooms.remove(roomId);
-//                  保存修改记录到数据库
-                    var currModifyRecord = modifyLast.get(curr.getDocUID());
-                    currModifyRecord.forEach((key,value)->{
-                        ModifyRecordBean a = new ModifyRecordBean();
-                        a.setDocUID(curr.getDocUID());
-                        a.setTime(value.getTime());
-                        a.setRowNumber(key);
-                        a.setUserUID(value.getUserUID());
-                        modifyRecordDao.save(a);
-                    });
-//                    删除修改记录暂存表
-                    modifyLast.remove(curr.getDocUID());
+//                  保存修改记录
+                    saveModifyRecordToSQL(curr.getDocUID());
                 }
             return ;
         }
@@ -116,11 +138,15 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
         var currDocMap = allDocMap.get(docUID);
         var currContent = currDocMap.getDocContent();
         int startLine = curr.getStartLine();
-//        应对四种类型的修改， 单行编辑，粘贴，新增行，删除内容(单行或多行)
+//        应对四种类型的修改， 中文单行编辑，粘贴，英文编辑大写、新增行，删除内容(单行或多行)，undo撤销
         if(Objects.equals(curr.getChangeType(), "*compose")){
 //            只需要替换单行内容
+//            System.out.println("文章地9行是：" + currContent.get(startLine));
             currContent.set(startLine,curr.getNewContent().get(0));
-            currModifyRecord.put(startLine,new ModifyRecord(DateTimeUtils.FORMAT_STRING_DATE,curr.getUserUID()));
+//            System.out.println("文章地9行是：" + currContent.get(startLine));
+//            System.out.println("时间是：");
+//            System.out.println(getCurrTime());
+            currModifyRecord.put(startLine,new ModifyRecord(getCurrTime(),curr.getUserUID()));
         }else if(Objects.equals(curr.getChangeType(), "paste")){
 //          需要替换内容段
             for(int i=0;i<curr.getRemovedNumbers();i++){
@@ -129,16 +155,23 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
 //            插入新的内容
             for (int i=curr.getNewContent().size()-1;i>=0;i--){
                 currContent.add(startLine,curr.getNewContent().get(i));
-                currModifyRecord.put(startLine+i,new ModifyRecord(DateTimeUtils.FORMAT_STRING_DATE,curr.getUserUID()));
+                currModifyRecord.put(startLine+i,new ModifyRecord(getCurrTime(),curr.getUserUID()));
             }
         }else if(Objects.equals(curr.getChangeType(), "+input")){
-//            新增一行，先替换原本的那一行
-            currContent.set(startLine,curr.getNewContent().get(0));
-            currModifyRecord.put(startLine,new ModifyRecord(DateTimeUtils.FORMAT_STRING_DATE,curr.getUserUID()));
+//            有两种情况：英文输入法或换行
+            if(curr.getNewContent().size() > 1){
+                //            新增一行，先替换原本的那一行
+                currContent.set(startLine,curr.getNewContent().get(0));
+                currModifyRecord.put(startLine,new ModifyRecord(getCurrTime(),curr.getUserUID()));
 //            再新增一行
-            currContent.add(startLine+1,curr.getNewContent().get(1));
-            currModifyRecord.put(startLine+1,new ModifyRecord(DateTimeUtils.FORMAT_STRING_DATE,curr.getUserUID()));
-        } else if(Objects.equals(curr.getChangeType(), "-delete")){
+                currContent.add(startLine+1,curr.getNewContent().get(1));
+                currModifyRecord.put(startLine+1,new ModifyRecord(getCurrTime(),curr.getUserUID()));
+            }else{
+                currContent.set(startLine,curr.getNewContent().get(0));
+                currModifyRecord.put(startLine,new ModifyRecord(getCurrTime(),curr.getUserUID()));
+            }
+
+        } else if(Objects.equals(curr.getChangeType(), "+delete")){
 //            先删除,当前行不用删，直接替换就好
             if(curr.getRemovedNumbers() != 1){
                 for(int i=0;i<curr.getRemovedNumbers()-1;i++){
@@ -146,7 +179,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
                 }
             }
             currContent.set(startLine,curr.getNewContent().get(0));
-            currModifyRecord.put(startLine,new ModifyRecord(DateTimeUtils.FORMAT_STRING_DATE,curr.getUserUID()));
+            currModifyRecord.put(startLine,new ModifyRecord(getCurrTime(),curr.getUserUID()));
         }
 //      消息转发
         Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
@@ -171,11 +204,21 @@ public class MyWebSocketHandler extends TextWebSocketHandler{
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
 //        获取当前用户所在分组
         var currAttributes =  session.getAttributes();
-        String roomId = "editor";
-        Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
-        sessions.remove(session);
+        String roomId = String.valueOf(currAttributes.get("docUID"));
+        if(!roomId.equals("editor")){
+            System.out.println("移除:" + roomId);
+            Set<WebSocketSession> sessions = rooms.getOrDefault(roomId, Collections.emptySet());
+            sessions.remove(session);
 //        为空则删除
-        if(sessions.isEmpty()){
+            if(sessions.isEmpty()){
+                rooms.remove(roomId);
+                saveModifyRecordToSQL(Integer.parseInt(roomId));
+            }
+        }
+        Set<WebSocketSession> allSessions = rooms.getOrDefault("editor", Collections.emptySet());
+        allSessions.remove(session);
+//        为空则删除
+        if(allSessions.isEmpty()){
             rooms.remove(roomId);
         }
         System.out.println("Client disconnected: " + session.getId());
