@@ -11,6 +11,7 @@ import server.mine.servertest.mysql.bean.UserBean;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping(path = "/user")
@@ -185,7 +186,9 @@ public class UserController {
      * @return
      */
     @PostMapping(path = "/addPermission/{UID}")
-    public  ReturnMsg addPermission(@PathVariable(value = "UID") Integer uid, @RequestBody PermissionBean permission){
+    public  ReturnMsg
+
+    addPermission(@PathVariable(value = "UID") Integer uid, @RequestBody PermissionBean permission){
 //        先验证权限
         var x = documentDao.getDocumentBeanByAuthorUID(uid);
         boolean flag = false;
@@ -206,7 +209,7 @@ public class UserController {
 //        获取记录，有or无
         var y = permissionDao.getPermissionBeanByUUIDAAndDocUID(permission.getUserUID(),permission.getDocUID());
 //        如果是要撤销权限
-        if(permission.getPermissionType() == "delete"){
+        if(Objects.equals(permission.getPermissionType(), "delete")){
             if(y.isEmpty()){
                 rmsg.setObject("但是用户本来也没权限");
             }else {
@@ -257,12 +260,12 @@ public class UserController {
     public ReturnMsg deleteCommends(@PathVariable(value = "UID") Integer uid, @RequestBody CommendsBean commend){
         ReturnMsg rmsg = new ReturnMsg();
 //        首先判断是否有权限删除评论，本人的文章，或者本人的评论
-        if(!(uid == commend.getUid())){
+        if(!(Objects.equals(uid, commend.getUid()))){
             boolean flag = false;
             var docList =  documentDao.getDocumentBeanByAuthorUID(uid);
             for (var c:docList
             ) {
-                if(c.getDocUID() == commend.getDocUID()){
+                if(Objects.equals(c.getDocUID(), commend.getDocUID())){
                     flag = true;
                     break;
                 }

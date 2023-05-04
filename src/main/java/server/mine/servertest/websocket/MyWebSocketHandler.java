@@ -39,6 +39,10 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
     public void saveModifyRecordToSQL(Integer uid) {
         //                  保存修改记录到数据库
         var currModifyRecord = modifyLast.get(uid);
+        if(currModifyRecord.isEmpty()) {
+            modifyLast.remove(uid);
+            return;
+        }
         currModifyRecord.forEach((key, value) -> {
             ModifyRecordBean a = new ModifyRecordBean();
             a.setDocUID(uid);
@@ -147,6 +151,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 //            System.out.println("文章地9行是：" + currContent.get(startLine));
 //            System.out.println("时间是：");
 //            System.out.println(getCurrTime());
+            System.out.println("当前临时文档：" + allDocMap.get(docUID).getDocContent().get(14));
             currModifyRecord.put(startLine, new ModifyRecord(getCurrTime(), curr.getUserUID()));
             blockMSG.put(curr.getUserUID(), curr.getStartLine());
         } else if (Objects.equals(curr.getChangeType(), "paste")) {

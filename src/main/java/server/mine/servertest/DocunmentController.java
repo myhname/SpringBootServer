@@ -12,10 +12,7 @@ import server.mine.servertest.mysql.bean.*;
 import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping(path = "/document")
@@ -298,7 +295,9 @@ public class DocunmentController {
                 rmsg.setObject("ERROR：历史版本保存失败，请重试或先将文件保存到本地");
                 return rmsg;
             }
+            historyManageDao.save(lastHistory);
 //            保存好之后更新
+            System.out.println("文档：" + allDocMap.get(docUID).getDocContent().get(14));
             mysqlOperate.saveDocToSQL("doc"+docUID,allDocMap.get(docUID).getDocContent());
         }
         rmsg.setCode(200);
@@ -324,7 +323,7 @@ public class DocunmentController {
         if(curr.isEmpty()){
             rmsg.setCode(200);
             rmsg.setObjectType("String");
-            rmsg.setObject("评论为空");
+            rmsg.setObject("暂无历史记录");
             return rmsg;
         }
         rmsg.setCode(200);
@@ -334,7 +333,7 @@ public class DocunmentController {
     }
 
     /**
-     *
+     * 回退，需要权限
      * @param userUID
      * @param historyUID
      * @return
@@ -354,7 +353,7 @@ public class DocunmentController {
         var docList = documentDao.getDocumentBeanByAuthorUID(userUID);
         for (var c:docList
              ) {
-            if(c.getDocUID() == currHistory.get().getDocUID()){
+            if(Objects.equals(c.getDocUID(), currHistory.get().getDocUID())){
                 flag = true;
                 break;
             }

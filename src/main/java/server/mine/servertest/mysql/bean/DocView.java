@@ -20,6 +20,16 @@ public class DocView {
     private String format;
     @Column(name = "permissionType")
     private String permissionType;
+    @Column(name = "userName")
+    private String username;
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
 
     public Integer getUserUID() {
         return userUID;
