@@ -151,7 +151,7 @@ public class MyWebSocketHandler extends TextWebSocketHandler {
 //            System.out.println("文章地9行是：" + currContent.get(startLine));
 //            System.out.println("时间是：");
 //            System.out.println(getCurrTime());
-            System.out.println("当前临时文档：" + allDocMap.get(docUID).getDocContent().get(14));
+//            System.out.println("当前临时文档：" + allDocMap.get(docUID).getDocContent().get(14));
             currModifyRecord.put(startLine, new ModifyRecord(getCurrTime(), curr.getUserUID()));
             blockMSG.put(curr.getUserUID(), curr.getStartLine());
         } else if (Objects.equals(curr.getChangeType(), "paste")) {

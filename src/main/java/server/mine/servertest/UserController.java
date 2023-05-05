@@ -252,31 +252,37 @@ public class UserController {
 
     /**
      * 删除某条评论
-     * @param uid 标识用户身份
-     * @param commend 被删除的评论信息
+     * @param uid
+     * @param docuid
+     * @param commendUID
      * @return
      */
-    @PostMapping(path = "/deleteCommends/{UID}")
-    public ReturnMsg deleteCommends(@PathVariable(value = "UID") Integer uid, @RequestBody CommendsBean commend){
+    @PostMapping(path = "/deleteCommends/{userUID}/{docUID}")
+    public ReturnMsg deleteCommends(@PathVariable(value = "userUID") Integer uid, @PathVariable(value = "docUID") Integer docuid,@RequestBody Integer commendUID){
         ReturnMsg rmsg = new ReturnMsg();
+        var a =  commendsDao.findById(commendUID);
+        if(a.isEmpty()){
+            rmsg.setCode(400);
+            rmsg.setObjectType("String");
+            rmsg.setObject("不存在");
+            return rmsg;
+        }
 //        首先判断是否有权限删除评论，本人的文章，或者本人的评论
-        if(!(Objects.equals(uid, commend.getUid()))){
-            boolean flag = false;
-            var docList =  documentDao.getDocumentBeanByAuthorUID(uid);
-            for (var c:docList
-            ) {
-                if(Objects.equals(c.getDocUID(), commend.getDocUID())){
-                    flag = true;
-                    break;
-                }
-            }
-            if(!flag){
+        if(!commendUID.equals(a.get().getAuthorUID())){
+            rmsg.setCode(400);
+            rmsg.setObjectType("String");
+            rmsg.setObject("您没有操作权限");
+            return  rmsg;
+        }else{
+            var x = documentDao.findById(docuid);
+            if(!uid.equals(x.get().getAuthorUID())){
                 rmsg.setCode(400);
                 rmsg.setObjectType("String");
                 rmsg.setObject("您没有操作权限");
+                return  rmsg;
             }
         }
-        commendsDao.delete(commend);
+        commendsDao.delete(a.get());
         rmsg.setCode(200);
         rmsg.setObjectType("String");
         rmsg.setObject("成功");
