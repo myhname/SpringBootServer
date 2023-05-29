@@ -167,7 +167,8 @@ public class DocunmentController {
         //新建临时文档
         DocMapBean newDoc = new DocMapBean();
         List<String> currList = new ArrayList<>();
-        currList.add(mysqlOperate.findRowContent(tableName, 0));
+        currList.add(0,mysqlOperate.findRowContent(tableName, 0));
+        System.out.println(currList.get(0));
         newDoc.setDocContent(currList);
         newDoc.setUserNumber(newDoc.getUserNumber() + 1);
         allDocMap.put(curr, newDoc);
@@ -187,6 +188,8 @@ public class DocunmentController {
     @PostMapping(path = "/newContent/{docUID}")
     public @ResponseBody ReturnMsg newContent(@PathVariable(value = "docUID") Integer docUID, @RequestBody RequestList content){
         var contentList = content.getContentList();
+        var desc = mysqlOperate.findRowContent("doc"+docUID, 0);
+        contentList.add(0,desc);
         ReturnMsg rmsg = new ReturnMsg();
         mysqlOperate.saveDocToSQL("doc"+docUID,contentList);
         //可以覆盖，所以重复就重复吧

@@ -91,9 +91,11 @@ public class UserController {
                 return rmsg;
             }
         }
+        System.out.println(newUser);
         userDao.save(newUser);
         UserBean curr = null;
-        for (var c : x) {
+        var y = userDao.findAll();
+        for (var c : y) {
             if (c.getAccount().equals(newUser.getAccount())) {
                 curr = c;
                 break;
@@ -186,9 +188,7 @@ public class UserController {
      * @return
      */
     @PostMapping(path = "/addPermission/{UID}")
-    public  ReturnMsg
-
-    addPermission(@PathVariable(value = "UID") Integer uid, @RequestBody PermissionBean permission){
+    public  ReturnMsg addPermission(@PathVariable(value = "UID") Integer uid, @RequestBody PermissionBean permission){
 //        先验证权限
         var x = documentDao.getDocumentBeanByAuthorUID(uid);
         boolean flag = false;
