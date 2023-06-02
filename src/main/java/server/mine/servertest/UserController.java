@@ -243,6 +243,7 @@ public class UserController {
     @PostMapping(path = "/addCommends")
     public  ReturnMsg addCommends(@RequestBody CommendsBean commend){
         ReturnMsg rmsg = new ReturnMsg();
+//        System.out.println(commend.getDocUID());
         commendsDao.save(commend);
         rmsg.setCode(200);
         rmsg.setObjectType("String");

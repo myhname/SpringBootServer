@@ -89,6 +89,7 @@ public class DocunmentController {
      * @param docUID
      */
     private void minusDocumentMapNumber(Integer docUID){
+        if (allDocMap.get(docUID) == null) return;
         allDocMap.get(docUID).setUserNumber(allDocMap.get(docUID).getUserNumber() - 1);
         if(allDocMap.get(docUID).getUserNumber() <= 0){
             mysqlOperate.saveDocToSQL("doc"+docUID,allDocMap.get(docUID).getDocContent());
